@@ -9,14 +9,13 @@ export default class DriveClient_v3 {
 
   getInterface() {
     return {
-      drive: {
-        files: this.files(),
-        permissions: this.permissions()
-      }
+      ...this.files(),
+      files: this.files(),
+      permissions: this.permissions()
     };
   }
 
-  async files() {
+  files() {
     return {
       create: async (options) => {
         const headers = await this.authClient.getAuthHeaders();
