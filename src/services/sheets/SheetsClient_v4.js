@@ -12,95 +12,93 @@ export default class SheetsClient_v4 {
 
   sheets() {
     return {
-      spreadsheets: {
-        get: async ({ spreadsheetId }) => {
+      get: async ({ spreadsheetId }) => {
+        const headers = await this.authClient.getAuthHeaders();
+        
+        const response = await fetch(`${this.baseUrl}/spreadsheets/${spreadsheetId}`, {
+          headers
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(`Failed to get spreadsheet: ${JSON.stringify(error)}`);
+        }
+        
+        return { data: await response.json() };
+      },
+      
+      batchUpdate: async ({ spreadsheetId, resource }) => {
+        const headers = await this.authClient.getAuthHeaders();
+        
+        const response = await fetch(`${this.baseUrl}/spreadsheets/${spreadsheetId}:batchUpdate`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(resource)
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(`Failed to batch update: ${JSON.stringify(error)}`);
+        }
+        
+        return { data: await response.json() };
+      },
+      
+      values: {
+        get: async ({ spreadsheetId, range }) => {
           const headers = await this.authClient.getAuthHeaders();
           
-          const response = await fetch(`${this.baseUrl}/spreadsheets/${spreadsheetId}`, {
-            headers
-          });
+          const response = await fetch(
+            `${this.baseUrl}/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`, 
+            { headers }
+          );
           
           if (!response.ok) {
             const error = await response.json();
-            throw new Error(`Failed to get spreadsheet: ${JSON.stringify(error)}`);
+            throw new Error(`Failed to get values: ${JSON.stringify(error)}`);
           }
           
           return { data: await response.json() };
         },
         
-        batchUpdate: async ({ spreadsheetId, resource }) => {
+        update: async ({ spreadsheetId, range, valueInputOption, resource }) => {
           const headers = await this.authClient.getAuthHeaders();
           
-          const response = await fetch(`${this.baseUrl}/spreadsheets/${spreadsheetId}:batchUpdate`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(resource)
-          });
+          const response = await fetch(
+            `${this.baseUrl}/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=${valueInputOption}`, 
+            {
+              method: 'PUT',
+              headers,
+              body: JSON.stringify(resource)
+            }
+          );
           
           if (!response.ok) {
             const error = await response.json();
-            throw new Error(`Failed to batch update: ${JSON.stringify(error)}`);
+            throw new Error(`Failed to update values: ${JSON.stringify(error)}`);
           }
           
           return { data: await response.json() };
         },
         
-        values: {
-          get: async ({ spreadsheetId, range }) => {
-            const headers = await this.authClient.getAuthHeaders();
-            
-            const response = await fetch(
-              `${this.baseUrl}/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`, 
-              { headers }
-            );
-            
-            if (!response.ok) {
-              const error = await response.json();
-              throw new Error(`Failed to get values: ${JSON.stringify(error)}`);
-            }
-            
-            return { data: await response.json() };
-          },
+        append: async ({ spreadsheetId, range, valueInputOption, resource }) => {
+          const headers = await this.authClient.getAuthHeaders();
           
-          update: async ({ spreadsheetId, range, valueInputOption, resource }) => {
-            const headers = await this.authClient.getAuthHeaders();
-            
-            const response = await fetch(
-              `${this.baseUrl}/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=${valueInputOption}`, 
-              {
-                method: 'PUT',
-                headers,
-                body: JSON.stringify(resource)
-              }
-            );
-            
-            if (!response.ok) {
-              const error = await response.json();
-              throw new Error(`Failed to update values: ${JSON.stringify(error)}`);
+          const response = await fetch(
+            `${this.baseUrl}/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=${valueInputOption}`, 
+            {
+              method: 'POST',
+              headers,
+              body: JSON.stringify(resource)
             }
-            
-            return { data: await response.json() };
-          },
+          );
           
-          append: async ({ spreadsheetId, range, valueInputOption, resource }) => {
-            const headers = await this.authClient.getAuthHeaders();
-            
-            const response = await fetch(
-              `${this.baseUrl}/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=${valueInputOption}`, 
-              {
-                method: 'POST',
-                headers,
-                body: JSON.stringify(resource)
-              }
-            );
-            
-            if (!response.ok) {
-              const error = await response.json();
-              throw new Error(`Failed to append values: ${JSON.stringify(error)}`);
-            }
-            
-            return { data: await response.json() };
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(`Failed to append values: ${JSON.stringify(error)}`);
           }
+          
+          return { data: await response.json() };
         }
       }
     };

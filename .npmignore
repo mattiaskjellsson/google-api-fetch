@@ -1,0 +1,6 @@
+eslint.config.js
+.c8rc.json
+spec/
+.github/
+coverage/
+.vscode/
