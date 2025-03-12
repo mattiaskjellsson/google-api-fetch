@@ -1,6 +1,6 @@
 {
   "name": "google-api-fetch",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "author": "Mattias Kjellsson",
   "description": "A lightweight Google API client using fetch for edge environments",
   "license": "MIT",
