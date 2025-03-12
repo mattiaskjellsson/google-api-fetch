@@ -9,8 +9,10 @@ export default class DriveClient_v3 {
 
   getInterface() {
     return {
-      files: this.files(),
-      permissions: this.permissions()
+      drive: {
+        files: this.files(),
+        permissions: this.permissions()
+      }
     };
   }
 
