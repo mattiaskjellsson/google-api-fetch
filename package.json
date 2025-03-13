@@ -30,12 +30,9 @@
   },
   "keywords": [
     "google-api",
-    "cloudflare",
-    "edge",
     "fetch",
     "google-drive",
     "google-docs",
-    "google-sheets",
-    "service-account"
+    "google-sheets"
   ]
 }

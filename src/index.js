@@ -3,7 +3,7 @@ import DriveClient_v3 from './services/drive/DriveClient_v3.js';
 import DocsClient_v1 from './services/docs/DocsClient_v1.js';
 import SheetsClient_v4 from './services/sheets/SheetsClient_v4.js';
 
-export default class GoogleApi {
+export default class GoogleApiFactory {
   /**
    * Create a new GoogleApi client
    * @param {Object} credentials - Service account credentials
