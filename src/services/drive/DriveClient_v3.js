@@ -137,6 +137,47 @@ export default class DriveClient_v3 {
           data: await response.arrayBuffer()
         };
       },
+
+      list: async (options) => {
+        const headers = await this.authClient.getAuthHeaders();
+        const { 
+          pageSize, 
+          pageToken, 
+          q, 
+          orderBy, 
+          fields, 
+          spaces,
+          corpora,
+          includeItemsFromAllDrives,
+          supportsAllDrives 
+        } = options;
+        
+        // Build query parameters
+        const queryParams = new URLSearchParams();
+        if (pageSize) queryParams.append('pageSize', pageSize);
+        if (pageToken) queryParams.append('pageToken', pageToken);
+        if (q) queryParams.append('q', q);
+        if (orderBy) queryParams.append('orderBy', orderBy);
+        if (fields) queryParams.append('fields', fields);
+        if (spaces) queryParams.append('spaces', spaces);
+        if (corpora) queryParams.append('corpora', corpora);
+        if (includeItemsFromAllDrives !== undefined) 
+          queryParams.append('includeItemsFromAllDrives', includeItemsFromAllDrives);
+        if (supportsAllDrives !== undefined) 
+          queryParams.append('supportsAllDrives', supportsAllDrives);
+        
+        const queryString = queryParams.toString();
+        const url = `${this.baseUrl}/files${queryString ? `?${queryString}` : ''}`;
+        
+        const response = await fetch(url, { headers });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(`Failed to list files: ${JSON.stringify(error)}`);
+        }
+
+        return { data: await response.json() };
+      },
     };
   }
 
