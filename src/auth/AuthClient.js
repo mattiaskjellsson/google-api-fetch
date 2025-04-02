@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 
 export default class AuthClient {
-  constructor({...credentials}) {
+  constructor({credentials}) {
     if (!credentials.client_email || !credentials.private_key) {
       throw new Error('Service account credentials must include client_email and private_key');
     }

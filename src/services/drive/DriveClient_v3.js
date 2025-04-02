@@ -11,7 +11,8 @@ export default class DriveClient_v3 {
     return {
       ...this.files(),
       files: this.files(),
-      permissions: this.permissions()
+      permissions: this.permissions(),
+      auth: this.authClient
     };
   }
 
@@ -106,17 +107,32 @@ export default class DriveClient_v3 {
 
       get: async (options) => {
         const headers = await this.authClient.getAuthHeaders();
-        const { fileId, fields } = options;
+        const { fileId, fields, alt } = options;
         
-        const queryParams = fields ? `?fields=${encodeURIComponent(fields)}` : '';
-        const response = await fetch(`${this.baseUrl}/files/${fileId}${queryParams}`, { headers });
+        let queryParams = new URLSearchParams();
+        if (fields) queryParams.append('fields', fields);
+        if (alt === 'media') queryParams.append('alt', 'media');
+        
+        const queryString = queryParams.toString();
+        const url = `${this.baseUrl}/files/${fileId}${queryString ? `?${queryString}` : ''}`;
+        
+        const response = await fetch(url, { headers });
 
         if (!response.ok) {
-          const error = await response.json();
-          throw new Error(`Failed to get file: ${JSON.stringify(error)}`);
+          try {
+            const error = await response.json();
+            throw new Error(`Failed to get file: ${JSON.stringify(error)}`);
+          } catch {
+            throw new Error(`Failed to get file: ${response.statusText}`);
+          }
         }
-
-        return { data: await response.json() };
+        
+        // Return binary data or JSON based on what was requested
+        if (alt === 'media') {
+          return { data: await response.arrayBuffer() };
+        } else {
+          return { data: await response.json() };
+        }
       },
 
       export: async (options, config) => {
@@ -132,9 +148,20 @@ export default class DriveClient_v3 {
           const error = await response.text();
           throw new Error(`Failed to export file: ${error}`);
         }
-
+        
+        // For text formats, return text
+        if (mimeType === 'text/csv' || 
+          mimeType === 'text/tab-separated-values' || 
+          mimeType === 'text/html' || 
+          mimeType === 'text/plain') {
         return { 
-          data: await response.arrayBuffer()
+          data: await response.text()
+        };
+        }
+
+        // For binary formats (Excel, PDF, ODS), return arrayBuffer
+        return { 
+          data: Buffer.from(await response.arrayBuffer())
         };
       },
 

@@ -2,7 +2,7 @@ import AuthClient from './auth/AuthClient.js';
 import DriveClient_v3 from './services/drive/DriveClient_v3.js';
 import DocsClient_v1 from './services/docs/DocsClient_v1.js';
 import SheetsClient_v4 from './services/sheets/SheetsClient_v4.js';
-
+import RateLimiter from './utils/RateLimiter.js';
 export default class GoogleApiFactory {
   /**
    * Create a new GoogleApi client
@@ -10,15 +10,58 @@ export default class GoogleApiFactory {
    * @param {string} credentials.client_email - Client email from credentials
    * @param {string} credentials.private_key - Private key from credentials
    */
-  constructor(credentials) {
+  constructor(credentials, options = {}) {
     if (!credentials) {
       throw new Error('Credentials required');
+    }
+
+    this.options = {
+      enableRateLimiting: true,
+      maxConcurrentRequests: 5,
+      requestIntervalMs: 500,
+      ...options
+    };
+    
+    if (this.options.enableRateLimiting) {
+      this.rateLimiter = new RateLimiter(
+        this.options.maxConcurrentRequests,
+        this.options.requestIntervalMs
+      );
     }
 
     this.credentials = credentials;
     this._authClient = new AuthClient(credentials);
   }
 
+  async _rateLimitedRequest(fn) {
+    if (this.options.enableRateLimiting && this.rateLimiter) {
+      return this.rateLimiter.execute(fn);
+    }
+    return fn();
+  }
+
+  _wrapWithRateLimiter(client) {
+    if (!client || typeof client !== 'object') {
+      return client;
+    }
+
+    const wrapped = {};
+
+    for(const [key, value] of Object.entries(client)) {
+      if (typeof value === 'function') {
+        wrapped[key] = async (...args) => {
+          return this._rateLimitedRequest(() => value(...args));
+        };
+      } else if (typeof value === 'object' && value !== null) {
+        wrapped[key] = this._wrapWithRateLimiter(value);
+      } else {
+        wrapped[key] = value;
+      }
+    }
+
+    return wrapped;
+  }
+  
   /**
    * Access Google Auth services
    * @returns {Object} Google Auth API
@@ -34,6 +77,10 @@ export default class GoogleApiFactory {
 
         async getClient() {
           return this._client;
+        }
+
+        getAccessToken() {
+          return this._client.getAccessToken();
         }
       }
     };
@@ -56,7 +103,13 @@ export default class GoogleApiFactory {
         throw new Error(`Unsupported Drive API version: ${version}`);
     }
 
-    return client.getInterface();
+    const iface = client.getInterface();
+
+    if (!this.options.enableRateLimiting) {
+      return iface;
+    }
+
+    return this._wrapWithRateLimiter(iface);
   }
 
   /**
@@ -97,6 +150,38 @@ export default class GoogleApiFactory {
     }
 
     return client.getInterface();
+  }
+
+  /**
+   * Download a file using an existing access token
+   * @param {string} fileId - The ID of the file to download
+   * @param {string} accessToken - A valid Google API access token
+   * @param {Object} options - Additional options
+   * @returns {Promise<Buffer>} - The file content as a Buffer
+   */
+  static async downloadFile(fileId, accessToken, options = {}) {
+    const response = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, 
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          ...(options.headers || {})
+        }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to download file: ${response.statusText}`);
+    }
+    
+    return Buffer.from(await response.arrayBuffer());
+  }
+
+  async downloadFile(fileId, options = {}) {
+    return this._rateLimitedRequest(async () => {
+      const accessToken = await this._authClient.getAccessToken();
+      return GoogleApiFactory.downloadFile(fileId, accessToken, options);
+    });
   }
 }
 
