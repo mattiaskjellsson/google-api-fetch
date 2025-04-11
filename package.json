@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "author": "Mattias Kjellsson",
   "description": "A lightweight Google API client using fetch for edge environments",
-  "license": "MIT",
+  "license": "LGPL-3.0-only",
   "type": "module",
   "main": "src/index.js",
   "repository": {
