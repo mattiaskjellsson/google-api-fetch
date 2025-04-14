@@ -1,6 +1,6 @@
 {
   "name": "google-api-fetch",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "author": "Mattias Kjellsson",
   "description": "A lightweight Google API client using fetch for edge environments",
   "license": "LGPL-3.0-only",
@@ -8,7 +8,7 @@
   "main": "src/index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mattiaskjellsson/google-api-fetch.git"
+    "url": "git+https://github.com/mattiaskjellsson/google-api-fetch.git"
   },
   "bugs": {
     "url": "https://github.com/mattiaskjellsson/google-api-fetch/issues"
