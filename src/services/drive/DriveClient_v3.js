@@ -1,5 +1,3 @@
-import { Readable } from 'stream';
-
 export default class DriveClient_v3 {
   constructor(authClient) {
     this.authClient = authClient;
@@ -19,6 +17,20 @@ export default class DriveClient_v3 {
   files() {
     return {
       create: async (options) => {
+        function concatUint8Arrays(arrays) {
+          const totalLength = arrays.reduce((acc, arr) => acc + arr.length, 0);
+          
+          const result = new Uint8Array(totalLength);
+          let offset = 0;
+          
+          for (const arr of arrays) {
+            result.set(arr, offset);
+            offset += arr.length;
+          }
+          
+          return result;
+        }
+
         const headers = await this.authClient.getAuthHeaders();
         const { requestBody, media } = options;
         
@@ -42,28 +54,21 @@ export default class DriveClient_v3 {
             const fileId = fileData.id;
             
             let mediaContent;
-            if (media.body instanceof ReadableStream || media.body instanceof Readable) {
+            if (media.body instanceof ReadableStream ) {
               const chunks = [];
-              const readStream = media.body instanceof ReadableStream ? 
-                media.body.getReader() : media.body;
+              const readStream = media.body.getReader();
               
-              if (media.body instanceof ReadableStream) {
-                while (true) {
-                  const { done, value } = await readStream.read();
-                  if (done) break;
-                  chunks.push(value);
-                }
-              } else {
-                for await (const chunk of readStream) {
-                  chunks.push(Buffer.from(chunk));
-                }
+              while (true) {
+                const { done, value } = await readStream.read();
+                if (done) break;
+                chunks.push(value);
               }
-              
-              mediaContent = Buffer.concat(chunks);
-            } else if (Buffer.isBuffer(media.body)) {
+
+              mediaContent = concatUint8Arrays(chunks);
+            } else if (media.body instanceof ArrayBuffer || media.body instanceof Uint8Array) {
               mediaContent = media.body;
             } else {
-              mediaContent = Buffer.from(media.body);
+              mediaContent = new TextEncoder().encode(media.body);
             }
             
             const uploadResponse = await fetch(`${this.uploadUrl}/files/${fileId}?uploadType=media`, {

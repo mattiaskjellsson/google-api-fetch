@@ -1,7 +1,32 @@
-import crypto from 'crypto';
+let cryptoModule;
+if (typeof crypto !== 'undefined') {
+  cryptoModule = crypto;
+} else if (typeof globalThis !== 'undefined' && globalThis.crypto) {
+  cryptoModule = globalThis.crypto;
+} else {
+  try {
+    const nodeCrypto = require('crypto');
+    cryptoModule = nodeCrypto.webcrypto;
+  } catch (e) {
+    throw new Error('Web Crypto API is not available in this environment');
+  }
+}
 
 export default class AuthClient {
-  constructor({credentials}) {
+  constructor(params) {
+    let credentials;
+    if (params.credentials) {
+      credentials = params.credentials;
+    } else if (params.private_key && params.client_email) {
+      credentials = {
+        private_key: params.private_key,
+        client_email: params.client_email
+      };
+    }
+    if (!credentials) {
+      throw new Error('Credentials required');
+    }
+   
     if (!credentials.client_email || !credentials.private_key) {
       throw new Error('Service account credentials must include client_email and private_key');
     }
@@ -94,8 +119,10 @@ export default class AuthClient {
     for (let i = 0; i < binaryString.length; i++) {
       bytes[i] = binaryString.charCodeAt(i);
     }
+
+    const cryptoImpl = cryptoModule;
     
-    return await crypto.subtle.importKey(
+    return await cryptoImpl.subtle.importKey(
       'pkcs8',
       bytes.buffer,
       {
@@ -110,8 +137,8 @@ export default class AuthClient {
   async signData(data, key) {
     const encoder = new TextEncoder();
     const encodedData = encoder.encode(data);
-    
-    const signature = await crypto.subtle.sign(
+    const cryptoImpl = cryptoModule;
+    const signature = await cryptoImpl.subtle.sign(
       { name: 'RSASSA-PKCS1-v1_5' },
       key,
       encodedData
