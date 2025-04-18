@@ -12,6 +12,19 @@ export default class DocsClient_v1 {
 
   documents() {
     return {
+      export: async (options) => {
+        const headers = await this.authClient.getAuthHeaders();
+        const { documentId, mimeType } = options;
+        
+        const response = await fetch(`${this.baseUrl}/documents/${documentId}/export?mimeType=${mimeType}`, { headers });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(`Failed to export document: ${JSON.stringify(error)}`);
+        }
+
+        return { data: await response.blob() };
+      },
       get: async (options) => {
         const headers = await this.authClient.getAuthHeaders();
         const { documentId } = options;
